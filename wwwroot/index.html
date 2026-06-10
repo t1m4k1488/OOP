@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>BookCatalog API — панель управления БД</title>
+    <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+    <header class="topbar">
+        <div>
+            <p class="eyebrow" data-i18n="lab">Лабораторная работа №3</p>
+            <h1 data-i18n="title">Панель управления книжной базой данных</h1>
+            <p class="subtitle" data-i18n="subtitle">
+                Здесь можно просматривать таблицы и менять данные в базе через CRUD-операции.
+            </p>
+        </div>
+        <div class="top-actions">
+            <div class="language-control">
+                <label class="language-label" for="languageSelect" data-i18n="language">Язык</label>
+                <select id="languageSelect" class="language-select">
+                    <option value="ru">Русский</option>
+                    <option value="en">English</option>
+                </select>
+            </div>
+            <a class="swagger-link" href="/swagger" target="_blank" data-i18n="openSwagger">Открыть Swagger</a>
+        </div>
+    </header>
+
+    <main class="layout">
+        <section class="card intro-card">
+            <h2 data-i18n="whatIsHere">Что можно делать на этой странице</h2>
+            <div class="help-grid">
+                <div>
+                    <h3 data-i18n="viewTablesTitle">Просмотр таблиц</h3>
+                    <p data-i18n="viewTablesText">Можно посмотреть таблицы «Авторы», «Книги», «Жанры» и «Связи книга-жанр» прямо в браузере.</p>
+                </div>
+                <div>
+                    <h3 data-i18n="changeDbTitle">Изменение БД</h3>
+                    <p data-i18n="changeDbText">Можно добавлять, редактировать и удалять авторов, книги и жанры.</p>
+                </div>
+                <div>
+                    <h3 data-i18n="relationsTitle">Связи</h3>
+                    <p data-i18n="relationsText">Видно связь один-ко-многим «Автор → Книги» и многие-ко-многим «Книги ↔ Жанры».</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="stats-grid" id="statsGrid"></section>
+
+        <section class="card">
+            <div class="section-head">
+                <div>
+                    <p class="eyebrow" data-i18n="crudBlock">CRUD-блок</p>
+                    <h2 data-i18n="editData">Внесение изменений в базу данных</h2>
+                </div>
+                <button id="refreshBtn" class="secondary-btn" type="button" data-i18n="refresh">Обновить данные</button>
+            </div>
+
+            <div class="tabs" role="tablist">
+                <button class="tab active" data-tab="authors" type="button" data-i18n="authors">Авторы</button>
+                <button class="tab" data-tab="genres" type="button" data-i18n="genres">Жанры</button>
+                <button class="tab" data-tab="books" type="button" data-i18n="books">Книги</button>
+                <button class="tab" data-tab="relations" type="button" data-i18n="relations">Связи книга-жанр</button>
+                <button class="tab" data-tab="allTables" type="button" data-i18n="allTables">Все таблицы</button>
+            </div>
+
+            <div id="status" class="status" aria-live="polite"></div>
+
+            <section class="tab-panel active" id="panel-authors">
+                <div class="two-columns">
+                    <form id="authorForm" class="form-card">
+                        <h3 data-i18n="authorFormTitle">Добавить / изменить автора</h3>
+                        <input id="authorId" type="hidden" />
+                        <label>
+                            <span data-i18n="authorName">ФИО автора</span>
+                            <input id="authorFullName" type="text" required maxlength="80" data-i18n-placeholder="authorNamePlaceholder" placeholder="Например: Лев Толстой" />
+                        </label>
+                        <label>
+                            <span data-i18n="country">Страна</span>
+                            <input id="authorCountry" type="text" list="countrySuggestions" maxlength="60" data-i18n-placeholder="countryPlaceholder" placeholder="Например: Россия" />
+                            <datalist id="countrySuggestions"></datalist>
+                        </label>
+                        <div class="form-actions">
+                            <button type="submit" class="primary-btn" data-i18n="saveAuthor">Сохранить автора</button>
+                            <button type="button" class="secondary-btn" id="clearAuthorBtn" data-i18n="clear">Очистить</button>
+                        </div>
+                        <p class="hint" data-i18n="authorHint">Если нажать «Изменить» в таблице, данные попадут в эту форму.</p>
+                    </form>
+                    <div>
+                        <h3 data-i18n="authorsTable">Таблица «Авторы»</h3>
+                        <div class="table-wrap" id="authorsTable"></div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="tab-panel" id="panel-genres">
+                <div class="two-columns">
+                    <form id="genreForm" class="form-card">
+                        <h3 data-i18n="genreFormTitle">Добавить / изменить жанр</h3>
+                        <input id="genreId" type="hidden" />
+                        <label>
+                            <span data-i18n="genreName">Название жанра</span>
+                            <input id="genreName" type="text" required maxlength="50" data-i18n-placeholder="genreNamePlaceholder" placeholder="Например: Роман" />
+                        </label>
+                        <div class="form-actions">
+                            <button type="submit" class="primary-btn" data-i18n="saveGenre">Сохранить жанр</button>
+                            <button type="button" class="secondary-btn" id="clearGenreBtn" data-i18n="clear">Очистить</button>
+                        </div>
+                        <p class="hint" data-i18n="genreHint">Если нажать «Изменить» в таблице, данные попадут в эту форму.</p>
+                    </form>
+                    <div>
+                        <h3 data-i18n="genresTable">Таблица «Жанры»</h3>
+                        <div class="table-wrap" id="genresTable"></div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="tab-panel" id="panel-books">
+                <div class="two-columns wide-left">
+                    <form id="bookForm" class="form-card">
+                        <h3 data-i18n="bookFormTitle">Добавить / изменить книгу</h3>
+                        <input id="bookId" type="hidden" />
+                        <label>
+                            <span data-i18n="bookTitle">Название книги</span>
+                            <input id="bookTitle" type="text" required maxlength="80" data-i18n-placeholder="bookTitlePlaceholder" placeholder="Например: Война и мир" />
+                        </label>
+                        <label>
+                            <span data-i18n="year">Год</span>
+                            <input id="bookYear" type="number" min="1400" step="1" inputmode="numeric" required data-i18n-placeholder="yearPlaceholder" placeholder="Например: 1869" />
+                        </label>
+                        <label>
+                            <span data-i18n="bookAuthor">Автор</span>
+                            <select id="bookAuthor" required></select>
+                        </label>
+                        <div class="field-block">
+                            <span data-i18n="bookGenres">Жанры</span>
+                            <div id="bookGenresCheckboxes" class="checkbox-list"></div>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="primary-btn" data-i18n="saveBook">Сохранить книгу</button>
+                            <button type="button" class="secondary-btn" id="clearBookBtn" data-i18n="clear">Очистить</button>
+                        </div>
+                        <p class="hint" data-i18n="bookHint">Сначала создайте автора и жанры, потом добавляйте книгу.</p>
+                    </form>
+                    <div>
+                        <h3 data-i18n="booksTable">Таблица «Книги» с автором и жанрами</h3>
+                        <div class="table-wrap" id="booksTable"></div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="tab-panel" id="panel-relations">
+                <div class="two-columns">
+                    <form id="relationForm" class="form-card">
+                        <h3 data-i18n="relationFormTitle">Изменить связь «Книга — жанр»</h3>
+                        <label>
+                            <span data-i18n="selectBook">Книга</span>
+                            <select id="relationBook" required></select>
+                        </label>
+                        <label>
+                            <span data-i18n="selectGenre">Жанр</span>
+                            <select id="relationGenre" required></select>
+                        </label>
+                        <div class="form-actions">
+                            <button type="button" class="primary-btn" id="addRelationBtn" data-i18n="addRelation">Добавить связь</button>
+                            <button type="button" class="danger-btn" id="removeRelationBtn" data-i18n="removeRelation">Удалить связь</button>
+                        </div>
+                        <p class="hint" data-i18n="relationHint">Одна строка в таблице связей означает: выбранная книга относится к выбранному жанру.</p>
+                    </form>
+                    <div>
+                        <h3 data-i18n="bookGenresTable">Таблица «Связи книга-жанр»</h3>
+                        <div class="table-wrap" id="bookGenresTable"></div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="tab-panel" id="panel-allTables">
+                <h3 data-i18n="allTablesTitle">Просмотр всех таблиц базы данных</h3>
+                <p class="hint" data-i18n="allTablesHint">В этом разделе показана структура базы: основные таблицы и промежуточная таблица, через которую реализована связь «Книги ↔ Жанры».</p>
+                <div class="tables-grid">
+                    <div>
+                        <h4 data-i18n="rawAuthorsTitle">Авторы</h4>
+                        <div class="table-wrap" id="rawAuthorsTable"></div>
+                    </div>
+                    <div>
+                        <h4 data-i18n="rawBooksTitle">Книги</h4>
+                        <div class="table-wrap" id="rawBooksTable"></div>
+                    </div>
+                    <div>
+                        <h4 data-i18n="rawGenresTitle">Жанры</h4>
+                        <div class="table-wrap" id="rawGenresTable"></div>
+                    </div>
+                    <div>
+                        <h4 data-i18n="rawBookGenresTitle">Связи книга-жанр</h4>
+                        <div class="table-wrap" id="rawBookGenresTable"></div>
+                    </div>
+                </div>
+            </section>
+        </section>
+    </main>
+
+    <script src="app.js"></script>
+</body>
+</html>

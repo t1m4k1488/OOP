@@ -1,0 +1,31 @@
+@BookCatalogApi_HostAddress = http://localhost:5000
+
+GET {{BookCatalogApi_HostAddress}}/api/authors
+Accept: application/json
+
+###
+
+POST {{BookCatalogApi_HostAddress}}/api/authors
+Content-Type: application/json
+
+{
+  "fullName": "Лев Толстой",
+  "country": "Россия"
+}
+
+###
+
+GET {{BookCatalogApi_HostAddress}}/api/books
+Accept: application/json
+
+###
+
+POST {{BookCatalogApi_HostAddress}}/api/books
+Content-Type: application/json
+
+{
+  "title": "Война и мир",
+  "year": 1869,
+  "authorId": 1,
+  "genreIds": [1, 3]
+}

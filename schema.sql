@@ -1,0 +1,28 @@
+-- Схема реляционной базы данных для лабораторной работы №3
+
+CREATE TABLE Authors (
+    Id INTEGER PRIMARY KEY AUTOINCREMENT,
+    FullName TEXT NOT NULL,
+    Country TEXT NULL
+);
+
+CREATE TABLE Books (
+    Id INTEGER PRIMARY KEY AUTOINCREMENT,
+    Title TEXT NOT NULL,
+    Year INTEGER NOT NULL,
+    AuthorId INTEGER NOT NULL,
+    FOREIGN KEY (AuthorId) REFERENCES Authors(Id) ON DELETE CASCADE
+);
+
+CREATE TABLE Genres (
+    Id INTEGER PRIMARY KEY AUTOINCREMENT,
+    Name TEXT NOT NULL
+);
+
+CREATE TABLE BookGenres (
+    BookId INTEGER NOT NULL,
+    GenreId INTEGER NOT NULL,
+    PRIMARY KEY (BookId, GenreId),
+    FOREIGN KEY (BookId) REFERENCES Books(Id) ON DELETE CASCADE,
+    FOREIGN KEY (GenreId) REFERENCES Genres(Id) ON DELETE CASCADE
+);
