@@ -1,0 +1,200 @@
+using System;
+using System.Diagnostics;
+using System.Threading;
+
+class Program
+{
+    const int MinNumber = 1;
+    const int MaxNumber = 10000;
+    const int ThreadCount = 4;
+
+    static int primeCount = 0;
+
+    static readonly object monitorLock = new object();
+
+    static readonly Mutex mutex = new Mutex();
+
+
+    static readonly Semaphore semaphore = new Semaphore(1, 1);
+
+    static readonly object consoleLock = new object();
+
+    static void Main()
+    {
+        Console.WriteLine("Задание 1.1. Подсчёт простых чисел в нескольких потоках");
+        Console.WriteLine(new string('-', 60));
+
+        RunMonitorVersion();
+        Console.WriteLine();
+
+        RunMutexVersion();
+        Console.WriteLine();
+
+        RunSemaphoreVersion();
+
+        Console.WriteLine();
+        Console.WriteLine("Работа программы завершена.");
+    }
+
+    static void RunMonitorVersion()
+    {
+        RunVersion("Версия 1 - Monitor", IncrementWithMonitor);
+    }
+
+    static void RunMutexVersion()
+    {
+        RunVersion("Версия 2 - Mutex", IncrementWithMutex);
+    }
+
+    static void RunSemaphoreVersion()
+    {
+        RunVersion("Версия 3 - Semaphore", IncrementWithSemaphore);
+    }
+
+    static void RunVersion(string versionName, Action incrementMethod)
+    {
+        primeCount = 0;
+
+        Console.WriteLine(versionName);
+        Console.WriteLine(new string('-', 60));
+
+        Stopwatch stopwatch = new Stopwatch();
+        stopwatch.Start();
+
+        Thread[] threads = CreateThreads(incrementMethod);
+
+        StartThreads(threads);
+        WaitThreads(threads);
+
+        stopwatch.Stop();
+
+        Console.WriteLine(new string('-', 60));
+        Console.WriteLine($"Общее количество простых чисел: {primeCount}");
+        Console.WriteLine($"Время выполнения: {stopwatch.ElapsedMilliseconds} мс");
+    }
+
+    static Thread[] CreateThreads(Action incrementMethod)
+    {
+        Thread[] threads = new Thread[ThreadCount];
+
+        int totalNumbers = MaxNumber - MinNumber + 1;
+        int partSize = totalNumbers / ThreadCount;
+        int remainder = totalNumbers % ThreadCount;
+
+        int currentStart = MinNumber;
+
+        for (int i = 0; i < ThreadCount; i++)
+        {
+            int threadNumber = i + 1;
+            int currentPartSize = partSize;
+
+            // Если числа делятся не нацело, добавляем по 1 в первые потоки
+            if (i < remainder)
+            {
+                currentPartSize++;
+            }
+
+            int start = currentStart;
+            int end = currentStart + currentPartSize - 1;
+
+            threads[i] = new Thread(() => ProcessRange(threadNumber, start, end, incrementMethod));
+            currentStart = end + 1;
+        }
+
+        return threads;
+    }
+
+    static void StartThreads(Thread[] threads)
+    {
+        for (int i = 0; i < threads.Length; i++)
+        {
+            threads[i].Start();
+        }
+    }
+
+    static void WaitThreads(Thread[] threads)
+    {
+        for (int i = 0; i < threads.Length; i++)
+        {
+            threads[i].Join();
+        }
+    }
+
+    static void ProcessRange(int threadNumber, int start, int end, Action incrementMethod)
+    {
+        for (int number = start; number <= end; number++)
+        {
+            WriteLineSafe($"Поток {threadNumber}: проверяется число {number}");
+
+            if (IsPrime(number))
+            {
+                WriteLineSafe($"Поток {threadNumber}: найдено простое число {number}");
+                incrementMethod();
+            }
+        }
+    }
+
+    static bool IsPrime(int number)
+    {
+        if (number < 2)
+            return false;
+
+        if (number == 2)
+            return true;
+
+        if (number % 2 == 0)
+            return false;
+
+        int limit = (int)Math.Sqrt(number);
+
+        for (int i = 3; i <= limit; i += 2)
+        {
+            if (number % i == 0)
+                return false;
+        }
+
+        return true;
+    }
+
+    static void IncrementWithMonitor()
+    {
+        lock (monitorLock)
+        {
+            primeCount++;
+        }
+    }
+
+    static void IncrementWithMutex()
+    {
+        mutex.WaitOne();
+        try
+        {
+            primeCount++;
+        }
+        finally
+        {
+            mutex.ReleaseMutex();
+        }
+    }
+
+    static void IncrementWithSemaphore()
+    {
+        semaphore.WaitOne();
+        try
+        {
+            primeCount++;
+        }
+        finally
+        {
+            semaphore.Release();
+        }
+    }
+
+    static void WriteLineSafe(string message)
+    {
+        lock (consoleLock)
+        {
+            Console.WriteLine(message);
+        }
+    }
+}
