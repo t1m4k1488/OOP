@@ -1,0 +1,168 @@
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.Threading;
+
+class Program
+{
+    const int SetCount = 15;
+    const int NumbersInSet = 100;
+    const int MinValue = 1;
+    const int MaxValue = 100;
+
+    const string FileName = "datasets.txt";
+
+    static int maxWorkingThreads = 3;
+
+    static List<int[]> dataSets = new List<int[]>();
+    static List<string> resultsLog = new List<string>();
+
+    static int totalSum = 0;
+
+    static readonly object logLock = new object();   
+    static readonly Mutex totalMutex = new Mutex();  
+    static Semaphore semaphore;                      
+
+    static void Main()
+    {
+        Console.Write("Введите максимальное количество одновременно работающих потоков: ");
+        maxWorkingThreads = int.Parse(Console.ReadLine());
+
+        semaphore = new Semaphore(maxWorkingThreads, maxWorkingThreads);
+
+        PrepareDataSets();
+
+        Stopwatch stopwatch = new Stopwatch();
+        stopwatch.Start();
+
+        Thread[] threads = new Thread[SetCount];
+
+        for (int i = 0; i < SetCount; i++)
+        {
+            int setIndex = i;
+            threads[i] = new Thread(() => ProcessSet(setIndex));
+        }
+
+        for (int i = 0; i < threads.Length; i++)
+        {
+            threads[i].Start();
+        }
+
+        for (int i = 0; i < threads.Length; i++)
+        {
+            threads[i].Join();
+        }
+
+        stopwatch.Stop();
+
+        Console.WriteLine();
+        Console.WriteLine("Результаты обработки наборов:");
+        Console.WriteLine(new string('-', 60));
+
+        foreach (string log in resultsLog)
+        {
+            Console.WriteLine(log);
+        }
+
+        Console.WriteLine(new string('-', 60));
+        Console.WriteLine($"Общий итог по всем наборам: {totalSum}");
+        Console.WriteLine($"Время выполнения: {stopwatch.ElapsedMilliseconds} мс");
+    }
+
+    static void PrepareDataSets()
+    {
+        if (File.Exists(FileName))
+        {
+            LoadDataSetsFromFile();
+        }
+        else
+        {
+            GenerateDataSets();
+            SaveDataSetsToFile();
+        }
+    }
+
+    static void GenerateDataSets()
+    {
+        Random random = new Random();
+
+        for (int i = 0; i < SetCount; i++)
+        {
+            int[] numbers = new int[NumbersInSet];
+
+            for (int j = 0; j < NumbersInSet; j++)
+            {
+                numbers[j] = random.Next(MinValue, MaxValue + 1);
+            }
+
+            dataSets.Add(numbers);
+        }
+    }
+
+    static void SaveDataSetsToFile()
+    {
+        using (StreamWriter writer = new StreamWriter(FileName))
+        {
+            for (int i = 0; i < dataSets.Count; i++)
+            {
+                writer.WriteLine(string.Join(" ", dataSets[i]));
+            }
+        }
+    }
+
+    static void LoadDataSetsFromFile()
+    {
+        string[] lines = File.ReadAllLines(FileName);
+
+        foreach (string line in lines)
+        {
+            string[] parts = line.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            int[] numbers = new int[parts.Length];
+
+            for (int i = 0; i < parts.Length; i++)
+            {
+                numbers[i] = int.Parse(parts[i]);
+            }
+
+            dataSets.Add(numbers);
+        }
+    }
+
+    static void ProcessSet(int setIndex)
+    {
+        semaphore.WaitOne();
+
+        try
+        {
+            int[] numbers = dataSets[setIndex];
+            int sum = 0;
+
+            for (int i = 0; i < numbers.Length; i++)
+            {
+                sum += numbers[i];
+            }
+
+            string message = $"Набор {setIndex + 1}: сумма = {sum}, поток ID = {Thread.CurrentThread.ManagedThreadId}";
+
+            lock (logLock)
+            {
+                resultsLog.Add(message);
+            }
+
+            totalMutex.WaitOne();
+            try
+            {
+                totalSum += sum;
+            }
+            finally
+            {
+                totalMutex.ReleaseMutex();
+            }
+        }
+        finally
+        {
+            semaphore.Release();
+        }
+    }
+}
