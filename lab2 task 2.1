@@ -1,0 +1,56 @@
+using System;
+using System.Diagnostics;
+using System.Net.Http;
+
+class Program
+{
+    static void Main()
+    {
+        string[] urls =
+        {
+            "https://jsonplaceholder.typicode.com/todos/1",
+            "https://jsonplaceholder.typicode.com/users/1",
+            "https://jsonplaceholder.typicode.com/posts/1"
+        };
+
+        Stopwatch stopwatch = new Stopwatch();
+        stopwatch.Start();
+
+        using (HttpClient client = new HttpClient())
+        {
+            for (int i = 0; i < urls.Length; i++)
+            {
+                string url = urls[i];
+
+                try
+                {
+                    Console.WriteLine($"Запрос {i + 1}: {url}");
+
+                    HttpResponseMessage response = client.GetAsync(url).Result;
+
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        Console.WriteLine($"Ошибка: сервер вернул код {(int)response.StatusCode} ({response.StatusCode})");
+                        return;
+                    }
+
+                    string json = response.Content.ReadAsStringAsync().Result;
+
+                    Console.WriteLine("Ответ сервера:");
+                    Console.WriteLine(json);
+                    Console.WriteLine(new string('-', 60));
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("Ошибка при выполнении запроса:");
+                    Console.WriteLine(ex.Message);
+                    return;
+                }
+            }
+        }
+
+        stopwatch.Stop();
+
+        Console.WriteLine($"Общее время работы: {stopwatch.ElapsedMilliseconds} мс");
+    }
+}
