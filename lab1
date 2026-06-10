@@ -1,0 +1,189 @@
+using System;
+
+namespace LabWork1
+{
+    // ЗАДАНИЕ 1, ВАРИАНТ 1: Rational Number
+
+    public class RationalNumber
+    {
+        public int Numerator { get; }
+        public int Denominator { get; }
+
+        public RationalNumber(int numerator, int denominator)
+        {
+            if (denominator == 0)
+                throw new DivideByZeroException("Знаменатель не может быть равен нулю.");
+            if (denominator < 0)
+            {
+                numerator = -numerator;
+                denominator = -denominator;
+            }
+
+            int gcd = GCD(Math.Abs(numerator), denominator);
+            Numerator = numerator / gcd;
+            Denominator = denominator / gcd;
+        }
+
+        // Вспомогательный метод для нахождения наибольшего общего делителя (Алгоритм Евклида)
+        private static int GCD(int a, int b)
+        {
+            while (b != 0)
+            {
+                int temp = b;
+                b = a % b;
+                a = temp;
+            }
+            return a;
+        }
+
+        // Перегруженный метод ToString.
+        public override string ToString()
+        {
+            // При получении целой дроби необходимо выводить число без знаменателя.
+            if (Denominator == 1 || Numerator == 0)
+                return Numerator.ToString();
+
+            return $"{Numerator}/{Denominator}";
+        }
+
+        // Перегрузка операций: +, -, *, /, ==, !=, <, <=, >, >=.
+        public static RationalNumber operator +(RationalNumber a, RationalNumber b) =>
+            new RationalNumber(a.Numerator * b.Denominator + b.Numerator * a.Denominator, a.Denominator * b.Denominator);
+
+        public static RationalNumber operator -(RationalNumber a, RationalNumber b) =>
+            new RationalNumber(a.Numerator * b.Denominator - b.Numerator * a.Denominator, a.Denominator * b.Denominator);
+
+        public static RationalNumber operator *(RationalNumber a, RationalNumber b) =>
+            new RationalNumber(a.Numerator * b.Numerator, a.Denominator * b.Denominator);
+
+        public static RationalNumber operator /(RationalNumber a, RationalNumber b)
+        {
+            if (b.Numerator == 0) throw new DivideByZeroException("Деление на ноль.");
+            return new RationalNumber(a.Numerator * b.Denominator, a.Denominator * b.Numerator);
+        }
+
+        public static bool operator ==(RationalNumber a, RationalNumber b)
+        {
+            if (ReferenceEquals(a, null) && ReferenceEquals(b, null)) return true;
+            if (ReferenceEquals(a, null) || ReferenceEquals(b, null)) return false;
+            return a.Numerator == b.Numerator && a.Denominator == b.Denominator;
+        }
+
+        public static bool operator !=(RationalNumber a, RationalNumber b) => !(a == b);
+
+        public static bool operator <(RationalNumber a, RationalNumber b) =>
+            a.Numerator * b.Denominator < b.Numerator * a.Denominator;
+
+        public static bool operator >(RationalNumber a, RationalNumber b) =>
+            a.Numerator * b.Denominator > b.Numerator * a.Denominator;
+
+        public static bool operator <=(RationalNumber a, RationalNumber b) => a < b || a == b;
+
+        public static bool operator >=(RationalNumber a, RationalNumber b) => a > b || a == b;
+
+        public override bool Equals(object obj) => obj is RationalNumber other && this == other;
+        public override int GetHashCode() => HashCode.Combine(Numerator, Denominator);
+    }
+
+    // ЗАДАНИЕ 2, ВАРИАНТ 6: Стратегия
+    public interface IDiscountStrategy
+    {
+        decimal CalculateFinalPrice(decimal orderAmount);
+    }
+
+    public class NoDiscountStrategy : IDiscountStrategy
+    {
+        public decimal CalculateFinalPrice(decimal orderAmount) => orderAmount;
+    }
+
+    public class PercentageDiscountStrategy : IDiscountStrategy
+    {
+        private readonly decimal _percentage;
+        public PercentageDiscountStrategy(decimal percentage) { _percentage = percentage; }
+
+        public decimal CalculateFinalPrice(decimal orderAmount) =>
+            orderAmount - (orderAmount * (_percentage / 100m));
+    }
+
+    public class FixedDiscountStrategy : IDiscountStrategy
+    {
+        private readonly decimal _discountAmount;
+        public FixedDiscountStrategy(decimal discountAmount) { _discountAmount = discountAmount; }
+
+        public decimal CalculateFinalPrice(decimal orderAmount) =>
+            Math.Max(0, orderAmount - _discountAmount);
+    }
+
+    public class OrderContext
+    {
+        private IDiscountStrategy _strategy;
+
+        public OrderContext(IDiscountStrategy strategy)
+        {
+            _strategy = strategy;
+        }
+
+        public void SetStrategy(IDiscountStrategy strategy)
+        {
+            _strategy = strategy;
+        }
+
+        public void ExecuteAlgorithm(decimal amount)
+        {
+            decimal finalPrice = _strategy.CalculateFinalPrice(amount);
+            Console.WriteLine($"Сумма заказа: {amount} руб. Итоговая цена со скидкой: {finalPrice} руб.");
+        }
+    }
+
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            Console.WriteLine("--- ТЕСТЫ ЗАДАНИЯ 1: RATIONAL NUMBER ---");
+
+            RationalNumber r1 = new RationalNumber(5, 10);
+            RationalNumber r2 = new RationalNumber(1, 3);
+            RationalNumber r3 = new RationalNumber(-4, -2);
+            RationalNumber r4 = new RationalNumber(1, -2);
+
+            Console.WriteLine($"Сокращение 5/10: {r1} (ожидается 1/2)");
+            Console.WriteLine($"Целое число -4/-2: {r3} (ожидается 2)");
+            Console.WriteLine($"Отрицательный знаменатель 1/-2: {r4} (ожидается -1/2)");
+
+            Console.WriteLine($"\nСложение: {r1} + {r2} = {r1 + r2} (ожидается 5/6)");
+            Console.WriteLine($"Вычитание: {r1} - {r2} = {r1 - r2} (ожидается 1/6)");
+            Console.WriteLine($"Умножение: {r1} * {r2} = {r1 * r2} (ожидается 1/6)");
+            Console.WriteLine($"Деление: {r1} / {r2} = {r1 / r2} (ожидается 3/2)");
+
+            Console.WriteLine($"\nСравнение {r1} == {new RationalNumber(1, 2)}: {r1 == new RationalNumber(1, 2)} (ожидается True)");
+            Console.WriteLine($"Сравнение {r1} > {r2}: {r1 > r2} (ожидается True)");
+
+            try
+            {
+                var errorRational = new RationalNumber(5, 0);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"\nПроверка деления на 0 при создании: Успешно перехвачено ({ex.Message})");
+            }
+
+
+            Console.WriteLine("\n--- ТЕСТЫ ЗАДАНИЯ 2: СТРАТЕГИЯ ---");
+            decimal orderAmount = 1000m;
+
+            OrderContext order = new OrderContext(new NoDiscountStrategy());
+            Console.WriteLine("Стратегия без скидки:");
+            order.ExecuteAlgorithm(orderAmount);
+
+            Console.WriteLine("\nСмена на стратегию: Скидка 15%");
+            order.SetStrategy(new PercentageDiscountStrategy(15));
+            order.ExecuteAlgorithm(orderAmount);
+
+            Console.WriteLine("\nСмена на стратегию: Фиксированная скидка 300 руб.");
+            order.SetStrategy(new FixedDiscountStrategy(300));
+            order.ExecuteAlgorithm(orderAmount);
+
+            Console.ReadLine();
+        }
+    }
+}
